@@ -103,6 +103,22 @@ class WikipediaTests(unittest.TestCase):
         self.assertIsNone(result["ratio_long"])
         self.assertEqual(result["label"], "sem base")
 
+    def test_same_subject(self):
+        self.assertTrue(wikipedia.same_subject("inteligência artificial", "Inteligência artificial"))
+        self.assertTrue(wikipedia.same_subject("ajax", "AFC Ajax"))
+        self.assertTrue(wikipedia.same_subject("finanças pessoais", "Finanças"))
+        self.assertTrue(wikipedia.same_subject("mercury", "Mercury (planet)"))
+        self.assertFalse(wikipedia.same_subject("easy recipes", "Martin Yan"))
+        self.assertFalse(wikipedia.same_subject("saúde e bem-estar", "Estado de bem-estar social"))
+        self.assertFalse(wikipedia.same_subject("online business", "Electronic business"))
+        self.assertFalse(wikipedia.same_subject("o que é", "De"))
+
+    def test_unrelated_article_is_not_used(self):
+        http = FakeHttp({"w/api.php": {"query": {"search": [{"title": "Martin Yan"}]}}})
+        result = wikipedia.article_trend(http, BR, "receitas fáceis", TODAY)
+        self.assertEqual(result, {"matched": False, "label": "sem artigo correspondente", "closest": "Martin Yan"})
+        self.assertEqual(len(http.calls), 1)
+
     def test_article_trend_without_match(self):
         http = FakeHttp({"w/api.php": {"query": {"search": []}}})
         self.assertIsNone(wikipedia.article_trend(http, BR, "nada", TODAY))
@@ -304,6 +320,16 @@ class PipelineTests(unittest.TestCase):
         dates = [format_datetime(now)] * 8 + [format_datetime(now - timedelta(days=20))] * 4
         many = FakeHttp({**no_wiki, "news.google.com": news_rss(dates)})
         self.assertEqual(pipeline.check_term(many, self.store, BR, "x", TODAY)["momentum"], 0.4)
+
+    def test_a_term_without_its_own_article_is_searched_once(self):
+        routes = {**self.routes, "w/api.php": {"query": {"search": [{"title": "Outra Coisa"}]}}}
+        http = FakeHttp(routes)
+        for _ in range(2):
+            result = pipeline.check_term(http, self.store, BR, "tema semente", TODAY)
+        self.assertEqual(result["wikipedia"], {"matched": False, "label": "sem artigo correspondente"})
+        self.assertEqual(sum("wiki" in url for url, _ in http.calls), 1)
+        self.assertIsNone(result["shape"])
+        self.assertIsNone(result["momentum"])
 
     def test_breaker_retries_after_the_cooldown(self):
         now = [0.0]

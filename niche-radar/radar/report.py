@@ -215,7 +215,9 @@ def _checks_section(db, run_id) -> str:
         else:
             news_cell = "–"
         wiki_cell = _trend_cell(wiki)
-        if wiki.get("article"):
+        if wiki.get("matched") is False:
+            wiki_cell = '<span class="muted">sem artigo correspondente</span>'
+        elif wiki.get("article"):
             wiki_cell = f'{_link(wiki.get("url"), wiki["article"])}<br>{_num(wiki.get("views_7d"))} views em 7d<br>{wiki_cell}'
         rows.append((
             data.get("momentum") or -1,

@@ -116,11 +116,16 @@ def pick_candidates(cfg, signals: list, limit: int | None = None) -> list[dict]:
 
 
 def _wikipedia_trend(http, store, market, term: str, end: date) -> dict | None:
-    """Article trend, remembering which article a term resolved to between runs."""
+    """Article trend, remembering between runs which article a term resolved to.
+
+    An empty remembered title means the term has no article of its own.
+    """
     known = store.wiki_title(market.key, term)
+    if known == "":
+        return dict(wikipedia.NO_MATCH)
     result = wikipedia.article_trend(http, market, term, end, title=known)
-    if result and not known:
-        store.save_wiki_title(market.key, term, result["article"])
+    if result and known is None:
+        store.save_wiki_title(market.key, term, result.get("article", ""))
     return result
 
 
@@ -159,7 +164,7 @@ def check_term(http, store, market, term: str, today: date, breaker: Breaker | N
         (news_short, None),
         (None, hn_long),
     ])
-    data["shape"] = wiki.get("label")
+    data["shape"] = wiki.get("label") if wiki.get("matched") else None
     return data
 
 
