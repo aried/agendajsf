@@ -23,7 +23,7 @@ Só usa a biblioteca padrão do Python 3.11 ou mais novo. Não há nada para ins
 | Google Trends, RSS "em alta agora" | 10 buscas em pico por país | Não | Quase sempre notícia, esporte e celebridade |
 | Google News, RSS de busca | Notícias dos últimos 30 dias sobre um termo | Não | No máximo cerca de 100 itens |
 | Autocomplete do YouTube | O que a busca sugere, por país e idioma | Não | Sem volume; endpoint não documentado |
-| Wikimedia Pageviews | Artigos mais lidos e série diária por artigo | Não | Exige contato no User-Agent para limite maior |
+| Wikimedia Pageviews | Artigos mais lidos e série diária por artigo | Não | Pede contato no User-Agent para limite maior; o contato só vai para ela |
 | Hacker News (Algolia) | Página inicial e contagem de histórias por termo | Não | Só tecnologia |
 | GitHub Search | Repositórios novos mais estrelados | Não | Só tecnologia; 10 buscas por minuto |
 | Mastodon | Hashtags em alta no mastodon.social | Não | Público pequeno |

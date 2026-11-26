@@ -204,10 +204,16 @@ class HttpTests(unittest.TestCase):
         http.get("https://x.test/b")
         self.assertIn(0.5, self.sleeps)
 
-    def test_contact_goes_into_user_agent(self):
-        http = self.make([b"ok"], contact="https://example.org/me")
-        http.get("https://x.test/a")
-        self.assertIn("https://example.org/me", self.requests[0].get_header("User-agent"))
+    def test_contact_is_sent_to_wikimedia_only(self):
+        http = self.make([b"ok"] * 4, contact="me@example.org")
+        for url in ("https://wikimedia.org/a", "https://pt.wikipedia.org/b",
+                    "https://news.google.com/c", "https://notwikipedia.org/d"):
+            http.get(url)
+        agents = [request.get_header("User-agent") for request in self.requests]
+        self.assertIn("me@example.org", agents[0])
+        self.assertIn("me@example.org", agents[1])
+        self.assertNotIn("me@example.org", agents[2])
+        self.assertNotIn("me@example.org", agents[3])
 
     def test_non_json_body_is_a_source_error(self):
         http = self.make([b"<html>limit</html>"])

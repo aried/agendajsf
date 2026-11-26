@@ -2,8 +2,8 @@
 # radar.toml fica fora do git, então seus termos não são publicados.
 
 [general]
-# Contato enviado no User-Agent. A Wikimedia dá limite maior a quem se identifica
-# com e-mail ou URL; sem isso, a parte de Wikipedia fica lenta ou é recusada.
+# Contato (e-mail ou URL) enviado no User-Agent somente à Wikimedia, que dá limite
+# maior a quem se identifica. As outras fontes nunca recebem esse dado.
 contact = ""
 data_dir = "data"
 # Quantos picos de busca e de leitura de cada mercado viram candidatos por execução.

@@ -25,6 +25,14 @@ HOST_INTERVALS = {
 }
 DEFAULT_INTERVAL = 0.5
 
+# The contact is personal data. It goes only to Wikimedia, whose User-Agent
+# policy asks for it; every other host gets the anonymous User-Agent.
+CONTACT_HOSTS = ("wikimedia.org", "wikipedia.org")
+
+
+def _matches(host: str, domains) -> bool:
+    return any(host == domain or host.endswith("." + domain) for domain in domains)
+
 
 class SourceError(Exception):
     """A source could not be read. Carries the HTTP status when there is one."""
@@ -45,8 +53,8 @@ class Http:
         clock=time.monotonic,
         opener=None,
     ):
-        suffix = f"; {contact}" if contact else ""
-        self.user_agent = f"niche-radar/{__version__} (personal research script{suffix})"
+        self.contact = contact
+        self.user_agent = f"niche-radar/{__version__} (personal research script)"
         self.timeout = timeout
         self.max_retries = max_retries
         self.max_wait = max_wait
@@ -56,9 +64,14 @@ class Http:
         self._last_call: dict[str, float] = {}
         self.requests: Counter[str] = Counter()
 
+    def user_agent_for(self, host: str) -> str:
+        if self.contact and _matches(host, CONTACT_HOSTS):
+            return f"niche-radar/{__version__} (personal research script; {self.contact})"
+        return self.user_agent
+
     def _pace(self, host: str) -> None:
         interval = next(
-            (v for k, v in HOST_INTERVALS.items() if host == k or host.endswith("." + k)),
+            (v for k, v in HOST_INTERVALS.items() if _matches(host, (k,))),
             DEFAULT_INTERVAL,
         )
         last = self._last_call.get(host)
@@ -70,7 +83,7 @@ class Http:
     def get(self, url: str, headers: dict[str, str] | None = None) -> bytes:
         host = urlsplit(url).hostname or ""
         request = urllib.request.Request(
-            url, headers={"User-Agent": self.user_agent, **(headers or {})}
+            url, headers={"User-Agent": self.user_agent_for(host), **(headers or {})}
         )
         last_error: SourceError | None = None
         rate_limited = False
