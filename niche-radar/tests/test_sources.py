@@ -109,6 +109,8 @@ class WikipediaTests(unittest.TestCase):
         self.assertTrue(wikipedia.same_subject("finanças pessoais", "Finanças"))
         self.assertTrue(wikipedia.same_subject("mercury", "Mercury (planet)"))
         self.assertFalse(wikipedia.same_subject("easy recipes", "Martin Yan"))
+        self.assertFalse(wikipedia.same_subject(
+            "salud y bienestar", "Ministerio de Salud Pública y Bienestar Social"))
         self.assertFalse(wikipedia.same_subject("saúde e bem-estar", "Estado de bem-estar social"))
         self.assertFalse(wikipedia.same_subject("online business", "Electronic business"))
         self.assertFalse(wikipedia.same_subject("o que é", "De"))

@@ -129,6 +129,24 @@ def _wikipedia_trend(http, store, market, term: str, end: date) -> dict | None:
     return result
 
 
+def summarise(data: dict) -> dict:
+    """Add the momentum and the trend shape derived from the lookups in `data`."""
+    wiki = data.get("wikipedia") or {}
+    news = data.get("news") or {}
+    hn = data.get("hackernews") or {}
+    # A capped or nearly empty news feed and a handful of Hacker News stories carry no trend.
+    news_usable = not news.get("capped") and news.get("items_30d", 0) >= MIN_NEWS_ITEMS
+    news_short = news.get("ratio_short") if news_usable else None
+    hn_long = hn.get("ratio_long") if hn.get("stories_30d", 0) + hn.get("stories_prev_30d", 0) >= 10 else None
+    data["momentum"] = momentum([
+        (wiki.get("ratio_short"), wiki.get("ratio_long")),
+        (news_short, None),
+        (None, hn_long),
+    ])
+    data["shape"] = wiki.get("label") if wiki.get("matched") else None
+    return data
+
+
 def check_term(http, store, market, term: str, today: date, breaker: Breaker | None = None) -> dict:
     """Look a term up on every validation source and summarise its momentum."""
     breaker = breaker or Breaker()
@@ -151,21 +169,8 @@ def check_term(http, store, market, term: str, today: date, breaker: Breaker | N
             data[name] = {"error": str(error)}
             breaker.record(name, False)
 
-    wiki = data.get("wikipedia") or {}
-    news = data.get("news") or {}
-    hn = data.get("hackernews") or {}
-    # A capped or nearly empty news feed and a handful of Hacker News stories carry no trend.
-    news_usable = not news.get("capped") and news.get("items_30d", 0) >= MIN_NEWS_ITEMS
-    news_short = news.get("ratio_short") if news_usable else None
-    hn_long = hn.get("ratio_long") if hn.get("stories_30d", 0) + hn.get("stories_prev_30d", 0) >= 10 else None
     data["trending_days"] = store.days_seen(term, "google_trends")
-    data["momentum"] = momentum([
-        (wiki.get("ratio_short"), wiki.get("ratio_long")),
-        (news_short, None),
-        (None, hn_long),
-    ])
-    data["shape"] = wiki.get("label") if wiki.get("matched") else None
-    return data
+    return summarise(data)
 
 
 def _measure(yt, store, cfg, run_id, market, kind, query, videos, now, momentum_value=None) -> dict:

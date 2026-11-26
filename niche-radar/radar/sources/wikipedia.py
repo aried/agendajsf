@@ -79,14 +79,14 @@ def same_subject(term: str, title: str) -> bool:
     """True when a title names the term's subject, not merely a page that mentions it.
 
     Full-text search returns something for any phrase, often unrelated. A title
-    is accepted only when its words are all in the term or the term's words are
-    all in the title, ignoring function words and a trailing "(disambiguation)".
+    is accepted only when one side's words are all in the other and they differ
+    by at most one word, ignoring function words and a trailing "(disambiguation)".
     """
     def words(text):
         return {w for w in norm(re.sub(r"\s*\(.*?\)", "", text)).split() if w not in STOPWORDS}
 
     a, b = words(term), words(title)
-    return bool(a and b) and (a <= b or b <= a)
+    return bool(a and b) and (a <= b or b <= a) and abs(len(a) - len(b)) <= 1
 
 
 def find_article(http, market, term: str) -> str | None:
