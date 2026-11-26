@@ -37,7 +37,7 @@ def trend_label(short: float | None, long: float | None) -> str:
     """Name the shape. A news spike is not the same as sustained growth."""
     if short is None:
         return "sem base"
-    if long is not None and long >= 1.15 and short >= 1.0:
+    if long is not None and long >= 1.15 and short >= 0.95:
         return "alta sustentada"
     if short >= 2.0:
         return "pico recente"

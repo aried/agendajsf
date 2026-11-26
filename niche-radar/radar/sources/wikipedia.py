@@ -75,9 +75,12 @@ def find_article(http, market, term: str) -> str | None:
     return hits[0]["title"] if hits else None
 
 
-def article_trend(http, market, term: str, end: date, days: int = 63) -> dict | None:
-    """Daily human pageviews of the article matching a term, with the trend shape."""
-    title = find_article(http, market, term)
+def article_trend(http, market, term: str, end: date, days: int = 63, title: str | None = None) -> dict | None:
+    """Daily human pageviews of the article matching a term, with the trend shape.
+
+    Pass `title` when the article is already known, to skip the search call.
+    """
+    title = title or find_article(http, market, term)
     if not title:
         return None
     start = end - timedelta(days=days - 1)

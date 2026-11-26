@@ -63,6 +63,7 @@ class TrendTests(unittest.TestCase):
         self.assertEqual(trend_label(0.5, 1.1), "em queda")
         self.assertEqual(trend_label(1.3, None), "subindo")
         self.assertEqual(trend_label(1.0, 1.0), "estável")
+        self.assertEqual(trend_label(0.97, 1.24), "alta sustentada")
         self.assertEqual(trend_label(None, None), "sem base")
 
     def test_zero_baseline_has_no_ratio(self):

@@ -19,8 +19,8 @@ RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 
 # Minimum seconds between two requests to the same host.
 HOST_INTERVALS = {
-    "wikimedia.org": 1.5,
-    "wikipedia.org": 1.5,
+    "wikimedia.org": 2.5,
+    "wikipedia.org": 2.5,
     "api.github.com": 6.5,
 }
 DEFAULT_INTERVAL = 0.5

@@ -294,6 +294,14 @@ class PipelineTests(unittest.TestCase):
         many = FakeHttp({**no_wiki, "news.google.com": news_rss(dates)})
         self.assertEqual(pipeline.check_term(many, self.store, BR, "x", TODAY)["momentum"], 0.4)
 
+    def test_wikipedia_title_is_looked_up_once(self):
+        http = FakeHttp(self.routes)
+        for _ in range(2):
+            result = pipeline.check_term(http, self.store, BR, "Tema Qualquer", TODAY)
+        self.assertEqual(result["wikipedia"]["article"], "Tema")
+        self.assertEqual(sum("w/api.php" in url for url, _ in http.calls), 1)
+        self.assertEqual(sum("per-article" in url for url, _ in http.calls), 2)
+
     def test_breaker_pauses_a_failing_source(self):
         routes = {**self.routes, "news.google.com": SourceError("news: HTTP 503", 503)}
         http = FakeHttp(routes)

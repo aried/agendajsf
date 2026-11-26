@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS yt_channels(
     created_at TEXT, subs INTEGER, views INTEGER, videos INTEGER, country TEXT,
     PRIMARY KEY(channel_id, collected_at));
 CREATE TABLE IF NOT EXISTS quota(day TEXT PRIMARY KEY, units INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS wiki_titles(
+    market TEXT NOT NULL, term_norm TEXT NOT NULL, title TEXT NOT NULL,
+    PRIMARY KEY(market, term_norm));
 """
 
 
@@ -115,6 +118,18 @@ class Store:
             " VALUES(?, ?, ?, ?, ?, ?, ?)",
             (run_id, utcnow(), market, term, norm(term), origin,
              json.dumps(data, ensure_ascii=False)),
+        )
+        self.db.commit()
+
+    def wiki_title(self, market: str, term: str) -> str | None:
+        row = self.db.execute(
+            "SELECT title FROM wiki_titles WHERE market = ? AND term_norm = ?", (market, norm(term))
+        ).fetchone()
+        return row[0] if row else None
+
+    def save_wiki_title(self, market: str, term: str, title: str) -> None:
+        self.db.execute(
+            "INSERT OR REPLACE INTO wiki_titles VALUES(?, ?, ?)", (market, norm(term), title)
         )
         self.db.commit()
 

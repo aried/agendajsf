@@ -99,6 +99,15 @@ def pick_candidates(cfg, signals: list, limit: int | None = None) -> list[dict]:
     return candidates[:limit] if limit else candidates
 
 
+def _wikipedia_trend(http, store, market, term: str, end: date) -> dict | None:
+    """Article trend, remembering which article a term resolved to between runs."""
+    known = store.wiki_title(market.key, term)
+    result = wikipedia.article_trend(http, market, term, end, title=known)
+    if result and not known:
+        store.save_wiki_title(market.key, term, result["article"])
+    return result
+
+
 def check_term(http, store, market, term: str, today: date, breaker: Breaker | None = None) -> dict:
     """Look a term up on every validation source and summarise its momentum."""
     breaker = breaker or Breaker()
@@ -106,7 +115,7 @@ def check_term(http, store, market, term: str, today: date, breaker: Breaker | N
     lookups = {
         "suggest": lambda: {"suggestions": google.youtube_suggestions(http, market, term)},
         "news": lambda: google.news_coverage(http, market, term),
-        "wikipedia": lambda: wikipedia.article_trend(http, market, term, wiki_end),
+        "wikipedia": lambda: _wikipedia_trend(http, store, market, term, wiki_end),
         "hackernews": lambda: community.hn_trend(http, term),
     }
     data: dict = {}
