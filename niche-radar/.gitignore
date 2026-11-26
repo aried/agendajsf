@@ -1,0 +1,5 @@
+# Collected data and personal configuration stay out of the repository.
+data/
+radar.toml
+__pycache__/
+*.pyc
