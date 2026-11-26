@@ -14,6 +14,9 @@ from . import Signal
 
 _REST = "https://wikimedia.org/api/rest_v1/metrics/pageviews"
 
+# An article read fewer times a day than this has no measurable trend.
+MIN_DAILY_VIEWS = 30
+
 # Namespaces and housekeeping pages that are not subjects.
 _SKIP_PREFIXES = (
     "special:", "especial:", "wikipedia:", "wikipédia:", "portal:", "file:", "ficheiro:",
@@ -90,11 +93,12 @@ def article_trend(http, market, term: str, end: date, days: int = 63, title: str
     )
     items = http.get_json(url).get("items", [])
     series = [item["views"] for item in items]
-    stats = trend_stats(series) or {}
+    stats = trend_stats(series, MIN_DAILY_VIEWS) or {}
     return {
         "article": title,
         "url": f"https://{market.wiki}.org/wiki/{quote(title.replace(' ', '_'))}",
         "days": len(series),
         "views_7d": sum(series[-7:]),
+        "series": series,
         **stats,
     }

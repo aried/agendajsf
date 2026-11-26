@@ -59,6 +59,18 @@ class TrendTests(unittest.TestCase):
         self.assertEqual(stats["ratio_short"], 4.0)
         self.assertEqual(stats["label"], "pico recente")
 
+    def test_one_viral_day_or_a_bot_burst_is_not_a_trend(self):
+        one_day = trend_stats([100.0] * 62 + [9000.0])
+        self.assertEqual(one_day["ratio_short"], 1.0)
+        burst_in_baseline = trend_stats([100.0] * 28 + [2000.0] * 5 + [100.0] * 23 + [100.0] * 7)
+        self.assertEqual(burst_in_baseline["ratio_short"], 1.0)
+        self.assertEqual(burst_in_baseline["ratio_long"], 1.0)
+
+    def test_baseline_below_minimum_gives_no_ratio(self):
+        stats = trend_stats([5.0] * 28 + [10.0] * 28 + [20.0] * 7, min_base=30)
+        self.assertIsNone(stats["ratio_short"])
+        self.assertEqual(stats["label"], "sem base")
+
     def test_labels(self):
         self.assertEqual(trend_label(0.5, 1.1), "em queda")
         self.assertEqual(trend_label(1.3, None), "subindo")

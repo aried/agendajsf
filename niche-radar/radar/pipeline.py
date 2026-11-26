@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from datetime import date, datetime, timedelta, timezone
 
 from .http import SourceError
@@ -12,25 +13,40 @@ from .textutil import norm
 
 # Wikimedia publishes a day's pageviews with a delay, so the run looks two days back.
 WIKI_LAG_DAYS = 2
-# After this many failures in a row a source is left alone for the rest of the run.
+# After this many failures in a row a source rests for the cooldown, in seconds.
 BREAKER_LIMIT = 2
-PAUSED = "fonte pausada nesta execução após falhas seguidas"
+BREAKER_COOLDOWN = 120.0
+PAUSED = "fonte em pausa após falhas seguidas"
 # Below this many news items in 30 days the weekly share is noise, not a trend.
 MIN_NEWS_ITEMS = 10
 
 
 class Breaker:
-    """Stops calling a source that keeps failing, so one outage cannot stall a run."""
+    """Pauses a source that keeps failing, so one outage cannot stall a run.
 
-    def __init__(self, limit: int = BREAKER_LIMIT):
+    After `limit` failures in a row the source rests for `cooldown` seconds.
+    It is then tried again, and a single new failure sends it back to rest.
+    """
+
+    def __init__(self, limit: int = BREAKER_LIMIT, cooldown: float = BREAKER_COOLDOWN, clock=time.monotonic):
         self.limit = limit
+        self.cooldown = cooldown
+        self._clock = clock
         self.failures: dict[str, int] = {}
+        self.paused_until: dict[str, float] = {}
 
     def open(self, source: str) -> bool:
-        return self.failures.get(source, 0) >= self.limit
+        until = self.paused_until.get(source)
+        return until is not None and self._clock() < until
 
     def record(self, source: str, ok: bool) -> None:
-        self.failures[source] = 0 if ok else self.failures.get(source, 0) + 1
+        if ok:
+            self.failures[source] = 0
+            self.paused_until.pop(source, None)
+            return
+        self.failures[source] = self.failures.get(source, 0) + 1
+        if self.failures[source] >= self.limit:
+            self.paused_until[source] = self._clock() + self.cooldown
 
 
 def discover(http, store, cfg, run_id: int, today: date, breaker: Breaker | None = None) -> list:

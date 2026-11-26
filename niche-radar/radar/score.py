@@ -12,18 +12,22 @@ from datetime import datetime, timezone
 from statistics import mean, median
 
 
-def trend_stats(series: list[float]) -> dict | None:
+def trend_stats(series: list[float], min_base: float = 0.0) -> dict | None:
     """Compare the last 7 days with the 28 before, and those with the 28 before that.
 
     `series` is daily values, oldest first. Returns None under 35 days of data.
+    Medians are used so that a few days of automated traffic or one viral day
+    do not pass for a trend. A baseline below `min_base` gives no ratios: with
+    a handful of daily views, any ratio is noise.
     """
     if len(series) < 35:
         return None
-    recent = mean(series[-7:])
-    base = mean(series[-35:-7])
-    older = mean(series[-63:-35]) if len(series) >= 63 else None
-    short = recent / base if base > 0 else None
-    long = base / older if older else None
+    recent = median(series[-7:])
+    base = median(series[-35:-7])
+    older = median(series[-63:-35]) if len(series) >= 63 else None
+    usable = base > 0 and base >= min_base
+    short = recent / base if usable else None
+    long = base / older if usable and older else None
     return {
         "recent_daily": round(recent, 4),
         "base_daily": round(base, 4),

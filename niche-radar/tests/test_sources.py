@@ -90,7 +90,18 @@ class WikipediaTests(unittest.TestCase):
         self.assertEqual(result["article"], "Tema Á")
         self.assertEqual(result["views_7d"], 1120)
         self.assertEqual(result["label"], "alta sustentada")
+        self.assertEqual(len(result["series"]), 63)
         self.assertIn("Tema_%C3%81/daily/20260923/20261124", http.calls[1][0])
+
+    def test_article_with_few_readers_has_no_trend(self):
+        http = FakeHttp({
+            "w/api.php": {"query": {"search": [{"title": "Tema"}]}},
+            "per-article": {"items": [{"views": v} for v in [2] * 28 + [5] * 28 + [9] * 7]},
+        })
+        result = wikipedia.article_trend(http, BR, "tema", date(2026, 11, 24))
+        self.assertIsNone(result["ratio_short"])
+        self.assertIsNone(result["ratio_long"])
+        self.assertEqual(result["label"], "sem base")
 
     def test_article_trend_without_match(self):
         http = FakeHttp({"w/api.php": {"query": {"search": []}}})
@@ -294,6 +305,23 @@ class PipelineTests(unittest.TestCase):
         many = FakeHttp({**no_wiki, "news.google.com": news_rss(dates)})
         self.assertEqual(pipeline.check_term(many, self.store, BR, "x", TODAY)["momentum"], 0.4)
 
+    def test_breaker_retries_after_the_cooldown(self):
+        now = [0.0]
+        breaker = pipeline.Breaker(limit=2, cooldown=60, clock=lambda: now[0])
+        breaker.record("s", False)
+        self.assertFalse(breaker.open("s"))
+        breaker.record("s", False)
+        self.assertTrue(breaker.open("s"))
+        now[0] = 61
+        self.assertFalse(breaker.open("s"))
+        breaker.record("s", False)  # one more failure is enough to rest again
+        self.assertTrue(breaker.open("s"))
+        now[0] = 200
+        breaker.record("s", True)
+        self.assertFalse(breaker.open("s"))
+        breaker.record("s", False)
+        self.assertFalse(breaker.open("s"))
+
     def test_wikipedia_title_is_looked_up_once(self):
         http = FakeHttp(self.routes)
         for _ in range(2):
@@ -311,7 +339,7 @@ class PipelineTests(unittest.TestCase):
         before = sum("news.google.com" in url for url, _ in http.calls)
         result = pipeline.check_term(http, self.store, BR, "x", TODAY, breaker)
         self.assertEqual(sum("news.google.com" in url for url, _ in http.calls), before)
-        self.assertIn("pausada", result["news"]["error"])
+        self.assertIn("em pausa", result["news"]["error"])
         self.assertIn("suggestions", result["suggest"])
 
     def test_discovery_and_checks_share_the_breaker(self):
@@ -326,7 +354,7 @@ class PipelineTests(unittest.TestCase):
         checks = [row["data"] for row in self.store.db.execute("SELECT data FROM checks ORDER BY id")]
         self.assertEqual(len(checks), 2)
         self.assertIn("HTTP 429", checks[0])
-        self.assertIn("pausada", checks[1])
+        self.assertIn("em pausa", checks[1])
 
     def test_full_run_without_youtube(self):
         http = FakeHttp(self.routes)
