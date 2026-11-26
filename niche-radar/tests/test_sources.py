@@ -285,6 +285,15 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual([c["term"] for c in picked], ["tema semente", "tema um"])
         self.assertEqual(len(pipeline.pick_candidates(self.cfg, signals, limit=1)), 1)
 
+    def test_few_news_items_do_not_count_as_momentum(self):
+        now = datetime.now(timezone.utc)
+        no_wiki = {**self.routes, "w/api.php": {"query": {"search": []}}}
+        few = FakeHttp({**no_wiki, "news.google.com": news_rss([format_datetime(now)] * 2 + [format_datetime(now - timedelta(days=20))])})
+        self.assertIsNone(pipeline.check_term(few, self.store, BR, "x", TODAY)["momentum"])
+        dates = [format_datetime(now)] * 8 + [format_datetime(now - timedelta(days=20))] * 4
+        many = FakeHttp({**no_wiki, "news.google.com": news_rss(dates)})
+        self.assertEqual(pipeline.check_term(many, self.store, BR, "x", TODAY)["momentum"], 0.4)
+
     def test_breaker_pauses_a_failing_source(self):
         routes = {**self.routes, "news.google.com": SourceError("news: HTTP 503", 503)}
         http = FakeHttp(routes)

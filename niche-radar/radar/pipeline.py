@@ -15,6 +15,8 @@ WIKI_LAG_DAYS = 2
 # After this many failures in a row a source is left alone for the rest of the run.
 BREAKER_LIMIT = 2
 PAUSED = "fonte pausada nesta execução após falhas seguidas"
+# Below this many news items in 30 days the weekly share is noise, not a trend.
+MIN_NEWS_ITEMS = 10
 
 
 class Breaker:
@@ -122,8 +124,9 @@ def check_term(http, store, market, term: str, today: date, breaker: Breaker | N
     wiki = data.get("wikipedia") or {}
     news = data.get("news") or {}
     hn = data.get("hackernews") or {}
-    # A capped news feed and a handful of Hacker News stories carry no trend.
-    news_short = None if news.get("capped") else news.get("ratio_short")
+    # A capped or nearly empty news feed and a handful of Hacker News stories carry no trend.
+    news_usable = not news.get("capped") and news.get("items_30d", 0) >= MIN_NEWS_ITEMS
+    news_short = news.get("ratio_short") if news_usable else None
     hn_long = hn.get("ratio_long") if hn.get("stories_30d", 0) + hn.get("stories_prev_30d", 0) >= 10 else None
     data["trending_days"] = store.days_seen(term, "google_trends")
     data["momentum"] = momentum([
