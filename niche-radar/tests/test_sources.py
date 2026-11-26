@@ -52,6 +52,15 @@ class GoogleTests(unittest.TestCase):
         self.assertIn("ds=yt", http.calls[0][0])
         self.assertIn("gl=BR", http.calls[0][0])
 
+    def test_expand_suggestions_dedupes_and_keeps_order(self):
+        def answer(url):
+            return '["q",["tema base","tema b extra"],[],{}]' if "q=tema+b" in url else '["q",["tema base","tema raiz"],[],{}]'
+
+        http = FakeHttp({"suggestqueries": answer})
+        found = google.expand_suggestions(http, BR, "tema", suffixes="ab")
+        self.assertEqual(found, ["tema base", "tema raiz", "tema b extra"])
+        self.assertEqual(len(http.calls), 3)
+
     def test_youtube_suggestions_bad_shape(self):
         with self.assertRaises(SourceError):
             google.youtube_suggestions(FakeHttp({"suggestqueries": "{}"}), BR, "q")
@@ -287,6 +296,20 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(sum("news.google.com" in url for url, _ in http.calls), before)
         self.assertIn("pausada", result["news"]["error"])
         self.assertIn("suggestions", result["suggest"])
+
+    def test_discovery_and_checks_share_the_breaker(self):
+        limited = SourceError("wikimedia.org: HTTP 429", 429)
+        routes = {k: v for k, v in self.routes.items() if "pageviews" not in k and k != "per-article"}
+        routes.update({"/metrics/pageviews/": limited, "w/api.php": limited})
+        http = FakeHttp(routes)
+        pipeline.run(http, self.store, self.cfg, None, date(2026, 11, 26), progress=lambda m: None)
+        # The top list fails in discovery, the first check fails too, and the
+        # second candidate is no longer sent to Wikipedia at all.
+        self.assertEqual(sum("wiki" in url for url, _ in http.calls), 2)
+        checks = [row["data"] for row in self.store.db.execute("SELECT data FROM checks ORDER BY id")]
+        self.assertEqual(len(checks), 2)
+        self.assertIn("HTTP 429", checks[0])
+        self.assertIn("pausada", checks[1])
 
     def test_full_run_without_youtube(self):
         http = FakeHttp(self.routes)

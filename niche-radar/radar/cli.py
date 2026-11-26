@@ -1,4 +1,4 @@
-"""Command line: python -m radar <run|check|report|status>."""
+"""Command line: python -m radar <run|check|expand|report|status>."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from . import config, pipeline, report
 from .http import Http, SourceError
+from .sources import google
 from .sources.youtube import YouTube
 from .store import Store
 
@@ -56,6 +57,19 @@ def cmd_check(args, cfg, http, store) -> int:
     return 0
 
 
+def cmd_expand(args, cfg, http, store) -> int:
+    if args.market not in cfg.markets:
+        print(f"mercado desconhecido: {args.market} (use {', '.join(cfg.markets)})", file=sys.stderr)
+        return 2
+    try:
+        suggestions = google.expand_suggestions(http, cfg.markets[args.market], args.term)
+    except SourceError as error:
+        print(f"autocomplete do YouTube falhou: {error}", file=sys.stderr)
+        return 1
+    print("\n".join(suggestions))
+    return 0
+
+
 def cmd_report(args, cfg, http, store) -> int:
     print(f"relatório: {report.write(store, cfg, args.run)}")
     return 0
@@ -86,6 +100,11 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--market", default="br")
     check.add_argument("--youtube", action="store_true", help="mede também no YouTube (cerca de 102 unidades)")
     check.set_defaults(handler=cmd_check)
+
+    expand = commands.add_parser("expand", help="lista o que o YouTube sugere para um termo (subnichos)")
+    expand.add_argument("term")
+    expand.add_argument("--market", default="br")
+    expand.set_defaults(handler=cmd_expand)
 
     rep = commands.add_parser("report", help="regera o relatório HTML")
     rep.add_argument("--run", type=int, help="número da execução (padrão: a última)")

@@ -101,3 +101,16 @@ def youtube_suggestions(http, market, query: str) -> list[str]:
         return [str(s) for s in data[1]]
     except (json.JSONDecodeError, LookupError, TypeError):
         raise SourceError("youtube suggest: formato inesperado") from None
+
+
+def expand_suggestions(http, market, term: str, suffixes: str = "abcdefghijklmnopqrstuvwxyz") -> list[str]:
+    """Suggestions for a term and for the term followed by each letter, without repeats.
+
+    This is how keyword tools build long-tail lists. It shows what people type,
+    in YouTube's order, and says nothing about how often.
+    """
+    found: dict[str, None] = {}
+    for query in [term] + [f"{term} {letter}" for letter in suffixes]:
+        for suggestion in youtube_suggestions(http, market, query):
+            found.setdefault(suggestion, None)
+    return list(found)

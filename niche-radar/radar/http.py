@@ -73,6 +73,7 @@ class Http:
             url, headers={"User-Agent": self.user_agent, **(headers or {})}
         )
         last_error: SourceError | None = None
+        rate_limited = False
         for attempt in range(self.max_retries + 1):
             self._pace(host)
             self.requests[host] += 1
@@ -88,6 +89,11 @@ class Http:
                 last_error = SourceError(f"{host}: HTTP {error.code}: {snippet}", error.code)
                 if error.code not in RETRY_STATUSES:
                     raise last_error from None
+                if error.code == 429:
+                    # One patient retry; a second refusal means the limit is real.
+                    if rate_limited:
+                        raise last_error from None
+                    rate_limited = True
                 retry_after = error.headers.get("Retry-After", "") if error.headers else ""
                 if retry_after.strip().isdigit():
                     asked = float(retry_after)

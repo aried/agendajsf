@@ -14,6 +14,7 @@ from .textutil import norm
 WIKI_LAG_DAYS = 2
 # After this many failures in a row a source is left alone for the rest of the run.
 BREAKER_LIMIT = 2
+PAUSED = "fonte pausada nesta execução após falhas seguidas"
 
 
 class Breaker:
@@ -30,16 +31,22 @@ class Breaker:
         self.failures[source] = 0 if ok else self.failures.get(source, 0) + 1
 
 
-def discover(http, store, cfg, run_id: int, today: date) -> list:
+def discover(http, store, cfg, run_id: int, today: date, breaker: Breaker | None = None) -> list:
     """Collect every discovery feed. A failing source is logged and skipped."""
+    breaker = breaker or Breaker()
     collected = []
 
     def attempt(name, market_key, fetch):
+        if breaker.open(name):
+            store.log_source(run_id, name, market_key, False, 0, PAUSED)
+            return
         try:
             signals = fetch()
         except SourceError as error:
+            breaker.record(name, False)
             store.log_source(run_id, name, market_key, False, 0, str(error))
             return
+        breaker.record(name, True)
         store.add_signals(run_id, signals)
         store.log_source(run_id, name, market_key, True, len(signals))
         collected.extend(signals)
@@ -103,7 +110,7 @@ def check_term(http, store, market, term: str, today: date, breaker: Breaker | N
     data: dict = {}
     for name, fetch in lookups.items():
         if breaker.open(name):
-            data[name] = {"error": "fonte pausada nesta execução após falhas seguidas"}
+            data[name] = {"error": PAUSED}
             continue
         try:
             data[name] = fetch()
@@ -171,13 +178,13 @@ def run(http, store, cfg, yt=None, today: date | None = None, max_candidates: in
     summary: dict = {"run_id": run_id, "youtube": "sem chave" if yt is None else "ok"}
 
     progress("1/3 coletando sinais das fontes abertas")
-    signals = discover(http, store, cfg, run_id, today)
+    breaker = Breaker()
+    signals = discover(http, store, cfg, run_id, today, breaker)
     candidates = pick_candidates(cfg, signals, max_candidates)
     summary["signals"] = len(signals)
     summary["candidates"] = len(candidates)
 
     progress(f"2/3 validando {len(candidates)} candidatos entre as fontes")
-    breaker = Breaker()
     checks = []
     for candidate in candidates:
         market = cfg.markets[candidate["market"]]

@@ -1,0 +1,191 @@
+# Copie para radar.toml e ajuste. Todas as chaves são opcionais.
+# radar.toml fica fora do git, então seus termos não são publicados.
+
+[general]
+# Contato enviado no User-Agent. A Wikimedia dá limite maior a quem se identifica
+# com e-mail ou URL; sem isso, a parte de Wikipedia fica lenta ou é recusada.
+contact = ""
+data_dir = "data"
+# Quantos picos de busca e de leitura de cada mercado viram candidatos por execução.
+trends_per_market = 3
+wiki_per_market = 3
+
+# Mercados padrão: br (pt), us (en), mx (es). Desligue um com enabled = false
+# ou acrescente outro informando todos os campos.
+# [markets.mx]
+# enabled = false
+# [markets.pt]
+# geo = "PT"
+# lang = "pt"
+# wiki = "pt.wikipedia"
+# news_hl = "pt-PT"
+# news_ceid = "PT:pt-150"
+
+[youtube]
+window_days = 30          # idade máxima dos vídeos analisados
+pages = 1                 # páginas de busca por termo; cada uma custa 100 unidades
+small_subs = 20000        # abaixo disso o canal conta como pequeno
+new_days = 365            # mais novo que isso o canal conta como novo
+breakout_views = 50000    # views mínimas de um "estouro"
+breakout_ratio = 5.0      # e views divididas por inscritos
+daily_quota = 10000       # cota diária do seu projeto no Google Cloud
+reserve = 1000            # unidades que o radar nunca gasta
+max_queries_per_run = 75  # cada termo medido custa cerca de 102 unidades
+scan = true
+retention_days = 30       # dados da API do YouTube são apagados depois disso
+
+# Pesos do índice de oportunidade. São heurística, não foram validados.
+[weights]
+demand = 0.35
+openness = 0.30
+breakouts = 0.20
+momentum = 0.15
+
+# Sementes: territórios que o radar mede em toda execução, um termo por mercado.
+# A grade abaixo é só um ponto de partida amplo, para comparar territórios com
+# os mesmos critérios. Não é recomendação: troque, apague e acrescente à vontade.
+# Use `python -m radar expand "termo"` para abrir um território em subnichos.
+
+[[seeds]]
+id = "financas-pessoais"
+br = "finanças pessoais"
+us = "personal finance"
+mx = "finanzas personales"
+
+[[seeds]]
+id = "investimentos"
+br = "investimentos"
+us = "investing"
+mx = "inversiones"
+
+[[seeds]]
+id = "inteligencia-artificial"
+br = "inteligência artificial"
+us = "artificial intelligence"
+mx = "inteligencia artificial"
+
+[[seeds]]
+id = "historia"
+br = "documentário história"
+us = "history documentary"
+mx = "documental historia"
+
+[[seeds]]
+id = "crimes-reais"
+br = "crimes reais"
+us = "true crime"
+mx = "crímenes reales"
+
+[[seeds]]
+id = "ciencia"
+br = "ciência explicada"
+us = "science explained"
+mx = "ciencia explicada"
+
+[[seeds]]
+id = "saude"
+br = "saúde e bem-estar"
+us = "health tips"
+mx = "salud y bienestar"
+
+[[seeds]]
+id = "psicologia"
+br = "psicologia"
+us = "psychology"
+mx = "psicología"
+
+[[seeds]]
+id = "desenvolvimento-pessoal"
+br = "desenvolvimento pessoal"
+us = "self improvement"
+mx = "desarrollo personal"
+
+[[seeds]]
+id = "estoicismo"
+br = "estoicismo"
+us = "stoicism"
+mx = "estoicismo"
+
+[[seeds]]
+id = "astronomia"
+br = "astronomia"
+us = "space documentary"
+mx = "astronomía"
+
+[[seeds]]
+id = "geopolitica"
+br = "geopolítica"
+us = "geopolitics"
+mx = "geopolítica"
+
+[[seeds]]
+id = "programacao"
+br = "programação"
+us = "programming tutorial"
+mx = "programación"
+
+[[seeds]]
+id = "empreendedorismo"
+br = "empreendedorismo"
+us = "online business"
+mx = "emprendimiento"
+
+[[seeds]]
+id = "marketing-digital"
+br = "marketing digital"
+us = "digital marketing"
+mx = "marketing digital"
+
+[[seeds]]
+id = "receitas"
+br = "receitas fáceis"
+us = "easy recipes"
+mx = "recetas fáciles"
+
+[[seeds]]
+id = "misterios"
+br = "mistérios sem solução"
+us = "unsolved mysteries"
+mx = "misterios sin resolver"
+
+[[seeds]]
+id = "filosofia"
+br = "filosofia"
+us = "philosophy"
+mx = "filosofía"
+
+[[seeds]]
+id = "estudo-biblico"
+br = "estudo bíblico"
+us = "bible study"
+mx = "estudio bíblico"
+
+[[seeds]]
+id = "economia"
+br = "economia explicada"
+us = "economics explained"
+mx = "economía explicada"
+
+[[seeds]]
+id = "mitologia"
+br = "mitologia"
+us = "mythology"
+mx = "mitología"
+
+[[seeds]]
+id = "curiosidades"
+br = "curiosidades"
+us = "interesting facts"
+mx = "curiosidades"
+
+[[seeds]]
+id = "animais"
+br = "documentário animais"
+us = "animal documentary"
+mx = "documental animales"
+
+[[seeds]]
+id = "criptomoedas"
+br = "criptomoedas"
+us = "crypto"
+mx = "criptomonedas"

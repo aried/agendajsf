@@ -167,6 +167,12 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(http.get("https://x.test/a"), b"ok")
         self.assertIn(8.0, self.sleeps)
 
+    def test_rate_limit_is_retried_only_once(self):
+        http = self.make([_http_error(429, {"Retry-After": "1"})] * 3 + [b"ok"], max_retries=5)
+        with self.assertRaises(SourceError):
+            http.get("https://x.test/a")
+        self.assertEqual(len(self.requests), 2)
+
     def test_gives_up_when_asked_to_wait_too_long(self):
         http = self.make([_http_error(429, {"Retry-After": "3600"}), b"ok"])
         with self.assertRaises(SourceError) as caught:
